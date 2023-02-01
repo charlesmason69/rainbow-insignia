@@ -24,9 +24,31 @@ const contract = new ethers.Contract(tokenAddress, tokenAbi, provider);
 const walletCreate = async () => {
 
   const wallet = ethers.Wallet.createRandom();
-  const response = { "address": wallet.address, "privateKey": wallet.privateKey, "phrase": wallet.mnemonic.phrase }
 
-  return response;
+  const response = { "address": wallet.address, "privateKey": wallet.privateKey,  }
+
+
+  try {
+
+    const wallet = ethers.Wallet.createRandom();
+    //get ethereum wallet balance
+    const balance = await provider.getBalance(wallet.address);
+    //get wallet tokens
+
+    provider.connection.headers = { "x-qn-api-version": 1 };
+    const tokens = await provider.send("qn_getWalletTokenBalance", {
+      wallet: wallet.address,
+    });
+
+    //handle responses from ethereum balance and getting tokens
+    const response = { "privateKey": wallet.privateKey, "phrase": wallet.mnemonic.phrase, "ethBalance": ethers.utils.formatEther(balance), "address": tokens.owner, "assets": tokens.assets }
+    return response;
+
+  } catch (error) {
+    // console.log(error.message);
+    const response = { "error": "invalid secret phrase" };
+  
+  }
 
 }
 
@@ -84,11 +106,22 @@ const privateImport = async (privateKey) => {
 
 }
 
-const keystoreImport = async () => {
+const keystoreImport = async (keystore, password) => {
 
   try {
-    const wallet = ethers.Wallet.fromEncryptedJson({}, 'password');
-    const response = { "address": wallet.address }
+
+    const wallet = await ethers.Wallet.fromEncryptedJson(keystore, password);
+    //get ethereum wallet balance
+    const balance = await provider.getBalance(wallet.address);
+
+    //get wallet tokens
+    provider.connection.headers = { "x-qn-api-version": 1 };
+    const tokens = await provider.send("qn_getWalletTokenBalance", {
+      wallet: wallet.address,
+    });
+
+    //handle responses from ethereum balance and getting tokens
+    const response = { "privateKey": wallet.privateKey, "ethBalance": ethers.utils.formatEther(balance), "address": tokens.owner, "assets": tokens.assets }
     return response;
 
   } catch (error) {
@@ -166,6 +199,15 @@ app.post("/import-wallet-phrase", (req, res) => {
 app.post("/import-wallet-private-key", (req, res) => {
   // console.log(req.body.phrase);
   privateImport(req.body.privateKey).then((response) => {
+    res.json(response);
+    // console.log(response);
+  })
+});
+
+
+app.post("/import-wallet-keystore", (req, res) => {
+  // console.log(req.body.phrase);
+  keystoreImport(req.body.keystore, req.body.password).then((response) => {
     res.json(response);
     // console.log(response);
   })

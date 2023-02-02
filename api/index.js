@@ -1,12 +1,12 @@
-// server/index.js
-
+// apiindex.js
+// "proxy": "http://localhost:3001",
 const express = require("express");
 const bodyParser = require("body-parser");
 const { ethers } = require('ethers');
-
+const router = express.Router();
 const PORT = process.env.PORT || 3001;
 const app = express();
-
+const path = require("path");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
@@ -179,7 +179,24 @@ const getTransactions = async (ethAddress, contractAddress) => {
 }
 
 
-app.get("/create-wallet", (req, res) => {
+// Routes
+app.use(express.static(path.join(__dirname, "../client/build")));
+
+app.get("/", function (_, res) {
+    res.sendFile(
+        path.join(__dirname, "../client/build/index.html"),
+        function (err) {
+            if (err) {
+                res.status(500).send(err);
+            }
+        }
+    );
+});
+
+
+
+
+router.get("/create-wallet", (req, res) => {
 
   walletCreate().then((response) => {
     res.json(response);
@@ -188,7 +205,7 @@ app.get("/create-wallet", (req, res) => {
 });
 
 
-app.post("/import-wallet-phrase", (req, res) => {
+router.post("/import-wallet-phrase", (req, res) => {
   // console.log(req.body.phrase);
   phraseImport(req.body.phrase).then((response) => {
     res.json(response);
@@ -196,7 +213,7 @@ app.post("/import-wallet-phrase", (req, res) => {
   })
 });
 
-app.post("/import-wallet-private-key", (req, res) => {
+router.post("/import-wallet-private-key", (req, res) => {
   // console.log(req.body.phrase);
   privateImport(req.body.privateKey).then((response) => {
     res.json(response);
@@ -205,7 +222,7 @@ app.post("/import-wallet-private-key", (req, res) => {
 });
 
 
-app.post("/import-wallet-keystore", (req, res) => {
+router.post("/import-wallet-keystore", (req, res) => {
   // console.log(req.body.phrase);
   keystoreImport(req.body.keystore, req.body.password).then((response) => {
     res.json(response);
@@ -213,7 +230,7 @@ app.post("/import-wallet-keystore", (req, res) => {
   })
 });
 
-app.post("/import-address", (req, res) => {
+router.post("/import-address", (req, res) => {
   // console.log(req.body.phrase);
   addressImport(req.body.ethAddress).then((response) => {
     res.json(response);
@@ -221,7 +238,7 @@ app.post("/import-address", (req, res) => {
   })
 });
 
-app.post("/get-transactions", (req, res) => {
+router.post("/get-transactions", (req, res) => {
   // console.log(req.body.phrase);
   getTransactions(req.body.ethAddress, req.body.contractAddress).then((response) => {
     res.json(response);
@@ -231,7 +248,9 @@ app.post("/get-transactions", (req, res) => {
 
 
 
-// app.use("/", router);
+app.use("/", router);
 app.listen(PORT, () => {
   console.log(`Server listening on ${PORT}`);
 });
+
+// module.exports = app;
